@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.skywalking</groupId>
         <artifactId>spring-cloud</artifactId>
-        <version>${revision}</version>
+        <version>9.1.0</version>
     </parent>
 
     <artifactId>netflix-plugins</artifactId>

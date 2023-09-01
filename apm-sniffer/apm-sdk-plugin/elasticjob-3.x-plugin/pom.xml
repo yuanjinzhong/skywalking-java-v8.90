@@ -20,7 +20,7 @@
     <parent>
         <groupId>org.apache.skywalking</groupId>
         <artifactId>apm-sdk-plugin</artifactId>
-        <version>${revision}</version>
+        <version>9.1.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
