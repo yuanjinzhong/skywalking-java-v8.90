@@ -133,6 +133,8 @@ public class SkyWalkingAgent {
 
         JDK9ModuleExporter.EdgeClasses edgeClasses = new JDK9ModuleExporter.EdgeClasses();
         try {
+            //skywalking会对jdk的类库增强，这些插件类只有AgentClassLoader才能加载，但是目标类是BootStrap ClassLoader加载的
+            // 所以要想Boot Strap class loader 也能加载插件类，只有手动注入到bootstrap class loader里面
             agentBuilder = BootstrapInstrumentBoost.inject(pluginFinder, instrumentation, agentBuilder, edgeClasses);
         } catch (Exception e) {
             throw new Exception("SkyWalking agent inject bootstrap instrumentation failure. Shutting down.", e);
@@ -144,9 +146,9 @@ public class SkyWalkingAgent {
             throw new Exception("SkyWalking agent open read edge in JDK 9+ failure. Shutting down.", e);
         }
 
-        agentBuilder.type(pluginFinder.buildMatch())
+        agentBuilder.type(pluginFinder.buildMatch())// 这个type表示拦截插件关心的类型，不是所有的类都拦截的，用ElementMatchers.any()表示拦截所有的类
                     .transform(new Transformer(pluginFinder))
-                    .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
+                    .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)// 就是byteBuddy的rebase策略，将原来的方法改名，新建一个以原方法名命名的方法
                     .with(new RedefinitionListener())
                     .with(new Listener())
                     .installOn(instrumentation);

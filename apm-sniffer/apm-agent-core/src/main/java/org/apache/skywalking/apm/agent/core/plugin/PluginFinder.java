@@ -70,7 +70,14 @@ public class PluginFinder {
             }
         }
     }
-
+    /**
+     * 查找所有能够对指定类型生效的插件
+     *
+     * 1.从命名插件里找
+     * 2.从间接匹配插件里找
+     * @param typeDescription 你就看做是Class
+     * @return
+     */
     public List<AbstractClassEnhancePluginDefine> find(TypeDescription typeDescription) {
         List<AbstractClassEnhancePluginDefine> matchedPlugins = new LinkedList<AbstractClassEnhancePluginDefine>();
         String typeName = typeDescription.getTypeName();
