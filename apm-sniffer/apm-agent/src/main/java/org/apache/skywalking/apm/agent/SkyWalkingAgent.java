@@ -108,6 +108,9 @@ public class SkyWalkingAgent {
         }
 
         try {
+            /**
+             * 加载服务的含义？？？
+             */
             ServiceManager.INSTANCE.boot();
         } catch (Exception e) {
             LOGGER.error(e, "Skywalking agent boot failure.");

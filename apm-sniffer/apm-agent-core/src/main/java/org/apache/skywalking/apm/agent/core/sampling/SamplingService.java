@@ -35,14 +35,14 @@ import org.apache.skywalking.apm.agent.core.logging.api.ILog;
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager;
 import org.apache.skywalking.apm.util.RunnableWithExceptionProtection;
 
-/**
+/** 采样服务
  * The <code>SamplingService</code> take charge of how to sample the {@link TraceSegment}. Every {@link TraceSegment}s
  * have been traced, but, considering CPU cost of serialization/deserialization, and network bandwidth, the agent do NOT
  * send all of them to collector, if SAMPLING is on.
  * <p>
  * By default, SAMPLING is on, and  {@link Config.Agent#SAMPLE_N_PER_3_SECS }
  */
-@DefaultImplementor
+@DefaultImplementor // 表示BootService的默认实现
 public class SamplingService implements BootService {
     private static final ILog LOGGER = LogManager.getLogger(SamplingService.class);
 
@@ -114,7 +114,7 @@ public class SamplingService implements BootService {
     }
 
     /**
-     * Handle the samplingRate changed.
+     * Handle the samplingRate changed. 采样率
      */
     public void handleSamplingRateChanged() {
         if (samplingRateWatcher.getSamplingRate() > 0) {

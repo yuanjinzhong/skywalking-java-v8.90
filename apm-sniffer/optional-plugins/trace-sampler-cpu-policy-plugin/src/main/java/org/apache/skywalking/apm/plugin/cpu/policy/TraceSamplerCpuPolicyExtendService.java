@@ -26,7 +26,7 @@ import org.apache.skywalking.apm.agent.core.logging.api.LogManager;
 import org.apache.skywalking.apm.agent.core.sampling.SamplingService;
 import org.apache.skywalking.apm.plugin.cpu.policy.conf.TraceSamplerCpuPolicyPluginConfig;
 
-@OverrideImplementor(SamplingService.class)
+@OverrideImplementor(SamplingService.class)// 表示一个覆盖实现
 public class TraceSamplerCpuPolicyExtendService extends SamplingService {
     private static final ILog LOGGER = LogManager.getLogger(TraceSamplerCpuPolicyExtendService.class);
 

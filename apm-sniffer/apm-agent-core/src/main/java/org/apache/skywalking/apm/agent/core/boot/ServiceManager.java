@@ -47,7 +47,7 @@ public enum ServiceManager {
     }
 
     public void shutdown() {
-        bootedServices.values().stream().sorted(Comparator.comparingInt(BootService::priority).reversed()).forEach(service -> {
+        bootedServices.values().stream().sorted(Comparator.comparingInt(BootService::priority).reversed()).forEach(service -> {//按优先级倒叙排
             try {
                 service.shutdown();
             } catch (Throwable e) {
@@ -56,28 +56,32 @@ public enum ServiceManager {
         });
     }
 
+    /**
+     * 非常复杂的逻辑
+     * @return
+     */
     private Map<Class, BootService> loadAllServices() {
         Map<Class, BootService> bootedServices = new LinkedHashMap<>();
         List<BootService> allServices = new LinkedList<>();
-        load(allServices);
+        load(allServices);//加载所有BootService的子类
         for (final BootService bootService : allServices) {
             Class<? extends BootService> bootServiceClass = bootService.getClass();
             boolean isDefaultImplementor = bootServiceClass.isAnnotationPresent(DefaultImplementor.class);
-            if (isDefaultImplementor) {
+            if (isDefaultImplementor) { // 有 @DefaultImplementor
                 if (!bootedServices.containsKey(bootServiceClass)) {
-                    bootedServices.put(bootServiceClass, bootService);
+                    bootedServices.put(bootServiceClass, bootService);//将默认实现放到map里面，key： class，value：实现类
                 } else {
                     //ignore the default service
                 }
             } else {
                 OverrideImplementor overrideImplementor = bootServiceClass.getAnnotation(OverrideImplementor.class);
-                if (overrideImplementor == null) {
+                if (overrideImplementor == null) { // 既没有 @DefaultImplementor 也没有 @OverrideImplementor
                     if (!bootedServices.containsKey(bootServiceClass)) {
-                        bootedServices.put(bootServiceClass, bootService);
+                        bootedServices.put(bootServiceClass, bootService);//非覆盖实现也放到map里面，key： class，value：实现类
                     } else {
                         throw new ServiceConflictException("Duplicate service define for :" + bootServiceClass);
                     }
-                } else {
+                } else {// 没有 @DefaultImplementor 但是有 @OverrideImplementor
                     Class<? extends BootService> targetService = overrideImplementor.value();
                     if (bootedServices.containsKey(targetService)) {
                         boolean presentDefault = bootedServices.get(targetService)
@@ -140,6 +144,10 @@ public enum ServiceManager {
         return (T) bootedServices.get(serviceClass);
     }
 
+    /**
+     * 到 META-INF/services/org.apache.skywalking.apm.agent.core.boot.BootService 目录下加载服务，也就是BootService的子类
+     * @param allServices
+     */
     void load(List<BootService> allServices) {
         for (final BootService bootService : ServiceLoader.load(BootService.class, AgentClassLoader.getDefault())) {
             allServices.add(bootService);
