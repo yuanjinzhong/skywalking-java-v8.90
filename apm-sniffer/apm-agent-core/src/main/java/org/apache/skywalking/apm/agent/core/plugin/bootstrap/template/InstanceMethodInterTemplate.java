@@ -40,6 +40,10 @@ import org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.MethodInt
  * -------------------------------
  * <p>
  * This class wouldn't be loaded in real env. This is a class template for dynamic class generation.
+ *
+ * 框架中会依据这个类，利用byteBuddy动态生成一个运行时的类
+ *
+ *
  */
 public class InstanceMethodInterTemplate {
     /**

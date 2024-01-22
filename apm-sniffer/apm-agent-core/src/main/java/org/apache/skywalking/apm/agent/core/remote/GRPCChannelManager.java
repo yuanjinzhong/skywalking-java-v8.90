@@ -63,6 +63,9 @@ public class GRPCChannelManager implements BootService, Runnable {
 
     }
 
+    /**
+     * agent 收集到的数据 上报OAP
+     */
     @Override
     public void boot() {
         if (Config.Collector.BACKEND_SERVICE.trim().length() == 0) {
@@ -70,12 +73,16 @@ public class GRPCChannelManager implements BootService, Runnable {
             LOGGER.error("Agent will not uplink any data.");
             return;
         }
+        // 解析 OAP 实例地址
         grpcServers = Arrays.asList(Config.Collector.BACKEND_SERVICE.split(","));
+        // 开启一个检测 Channel 连接状态并适时重启的定时任务, 默认30s
         connectCheckFuture = Executors.newSingleThreadScheduledExecutor(
-            new DefaultNamedThreadFactory("GRPCChannelManager")
+             // 自定义线程工厂，用于为线程命名并开启守护线程
+             new DefaultNamedThreadFactory("GRPCChannelManager")
         ).scheduleAtFixedRate(
             new RunnableWithExceptionProtection(
                 this,
+                // 线程异常时的回调
                 t -> LOGGER.error("unexpected exception.", t)
             ), 0, Config.Collector.GRPC_CHANNEL_CHECK_INTERVAL, TimeUnit.SECONDS
         );

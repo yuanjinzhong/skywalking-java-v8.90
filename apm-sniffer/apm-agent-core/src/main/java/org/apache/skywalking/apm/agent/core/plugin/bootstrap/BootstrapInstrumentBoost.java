@@ -73,6 +73,9 @@ public class BootstrapInstrumentBoost {
         "org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.v2.MethodInvocationContext",
     };
 
+    /**
+     * 模板类，从这个模板开始，利用byteBuddy动态生成运行时的类
+     */
     private static String INSTANCE_METHOD_DELEGATE_TEMPLATE = "org.apache.skywalking.apm.agent.core.plugin.bootstrap.template.InstanceMethodInterTemplate";
     private static String INSTANCE_METHOD_WITH_OVERRIDE_ARGS_DELEGATE_TEMPLATE = "org.apache.skywalking.apm.agent.core.plugin.bootstrap.template.InstanceMethodInterWithOverrideArgsTemplate";
     private static String CONSTRUCTOR_DELEGATE_TEMPLATE = "org.apache.skywalking.apm.agent.core.plugin.bootstrap.template.ConstructorInterTemplate";
@@ -88,6 +91,7 @@ public class BootstrapInstrumentBoost {
         AgentBuilder agentBuilder, JDK9ModuleExporter.EdgeClasses edgeClasses) throws PluginException {
         Map<String, byte[]> classesTypeMap = new LinkedHashMap<>();
 
+        //非常重要的方法
         if (!prepareJREInstrumentation(pluginFinder, classesTypeMap)) {
             return agentBuilder;
         }
@@ -248,8 +252,10 @@ public class BootstrapInstrumentBoost {
         String templateClassName, String methodsInterceptor) {
         String internalInterceptorName = internalDelegate(methodsInterceptor);
         try {
+            // 模板类的类型描述：InstanceMethodInterTemplate
             TypeDescription templateTypeDescription = typePool.describe(templateClassName).resolve();
 
+            // 将模板类从源代码编译成字节码
             DynamicType.Unloaded interceptorType = new ByteBuddy().redefine(templateTypeDescription, ClassFileLocator.ForClassLoader
                 .of(BootstrapInstrumentBoost.class.getClassLoader()))
                                                                   .name(internalInterceptorName)
