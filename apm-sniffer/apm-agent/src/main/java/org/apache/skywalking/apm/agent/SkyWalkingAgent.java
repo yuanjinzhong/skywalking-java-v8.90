@@ -183,19 +183,29 @@ public class SkyWalkingAgent {
             this.pluginFinder = pluginFinder;
         }
 
+        /**
+         *
+         * @param builder 当前拦截到的类的字节码(类字节码以builder形式的展现)
+         * @param typeDescription 简单当成class ,它包含了类的描述信息
+         * @param classLoader 加载[当前拦截到的类] 的类加载器
+         * @param javaModule
+         * @param protectionDomain
+         * @return
+         */
         @Override
         public DynamicType.Builder<?> transform(final DynamicType.Builder<?> builder,
                                                 final TypeDescription typeDescription,
                                                 final ClassLoader classLoader,
                                                 final JavaModule javaModule,
                                                 final ProtectionDomain protectionDomain) {
+            // 注册了一些jvm信息,和依赖的jar包, OAP(Observability Analysis Platform,可观测性分析平台)里面会用到
             LoadedLibraryCollector.registerURLClassLoader(classLoader);
-            List<AbstractClassEnhancePluginDefine> pluginDefines = pluginFinder.find(typeDescription);
-            if (pluginDefines.size() > 0) {
+            List<AbstractClassEnhancePluginDefine> pluginDefines = pluginFinder.find(typeDescription); // 找到适用 [当前类] 的插件
+            if (pluginDefines.size() > 0) { // 有可用插件,开始增强
                 DynamicType.Builder<?> newBuilder = builder;
                 EnhanceContext context = new EnhanceContext();
                 for (AbstractClassEnhancePluginDefine define : pluginDefines) {
-                    DynamicType.Builder<?> possibleNewBuilder = define.define(
+                    DynamicType.Builder<?> possibleNewBuilder = define.define(//调用插件的define方法对 [当前拦截到的类的字节码:newBuilder]做增强
                         typeDescription, newBuilder, classLoader, context);
                     if (possibleNewBuilder != null) {
                         newBuilder = possibleNewBuilder;
@@ -205,11 +215,12 @@ public class SkyWalkingAgent {
                     LOGGER.debug("Finish the prepare stage for {}.", typeDescription.getName());
                 }
 
-                return newBuilder;
+                return newBuilder;  // 被 [所有可用插件]  修改完之后的最终字节码 (所有插件循环修改的)
+
             }
 
             LOGGER.debug("Matched class {}, but ignore by finding mechanism.", typeDescription.getTypeName());
-            return builder;
+            return builder;// 被拦截类的原始字节码,没有被增强
         }
     }
 

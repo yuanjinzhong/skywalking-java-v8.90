@@ -59,7 +59,9 @@ public abstract class AbstractClassEnhancePluginDefine {
      */
     public DynamicType.Builder<?> define(TypeDescription typeDescription, DynamicType.Builder<?> builder,
         ClassLoader classLoader, EnhanceContext context) throws PluginException {
+        //当前插件名字
         String interceptorDefineClassName = this.getClass().getName();
+        // 当前待曾强类的名字
         String transformClassName = typeDescription.getTypeName();
         if (StringUtil.isEmpty(transformClassName)) {
             LOGGER.warn("classname of being intercepted is not defined by {}.", interceptorDefineClassName);
@@ -67,6 +69,11 @@ public abstract class AbstractClassEnhancePluginDefine {
         }
 
         LOGGER.debug("prepare to enhance class {} by {}.", transformClassName, interceptorDefineClassName);
+
+        // witness 机制: 用来识别组件版本
+        // 举个例子,比如skywalking 针对spring3,4,5 分别实现了增强插件, 在增强插件里面分别维护了witnessClass 或者 witnessMethod,
+        // spring 3的增强插件里面的witnessClass 存放了 spring3 特有的类
+        // 就是用来作为插件区分的
         WitnessFinder finder = WitnessFinder.INSTANCE;
         /**
          * find witness classes for enhance class
@@ -80,6 +87,7 @@ public abstract class AbstractClassEnhancePluginDefine {
                 }
             }
         }
+        // 插件里面标识的WitnessMethod 是否存在当前的classLoader里面
         List<WitnessMethod> witnessMethods = witnessMethods();
         if (!CollectionUtil.isEmpty(witnessMethods)) {
             for (WitnessMethod witnessMethod : witnessMethods) {
@@ -93,7 +101,7 @@ public abstract class AbstractClassEnhancePluginDefine {
         /**
          * find origin class source code for interceptor
          */
-        DynamicType.Builder<?> newClassBuilder = this.enhance(typeDescription, builder, classLoader, context);
+        DynamicType.Builder<?> newClassBuilder = this.enhance(typeDescription, builder, classLoader, context); //以上校验通过,可以增强
 
         context.initializationStageCompleted();
         LOGGER.debug("enhance class {} by {} completely.", transformClassName, interceptorDefineClassName);
