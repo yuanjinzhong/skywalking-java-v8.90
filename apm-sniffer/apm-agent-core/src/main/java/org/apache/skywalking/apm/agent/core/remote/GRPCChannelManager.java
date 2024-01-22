@@ -45,17 +45,20 @@ import org.apache.skywalking.apm.util.StringUtil;
 
 import static org.apache.skywalking.apm.agent.core.conf.Config.Collector.IS_RESOLVE_DNS_PERIODICALLY;
 
+/**
+ * 这个服务是agent 到 oap的大动脉，也就是网络链接
+ */
 @DefaultImplementor
 public class GRPCChannelManager implements BootService, Runnable {
     private static final ILog LOGGER = LogManager.getLogger(GRPCChannelManager.class);
 
-    private volatile GRPCChannel managedChannel = null;
-    private volatile ScheduledFuture<?> connectCheckFuture;
-    private volatile boolean reconnect = true;
+    private volatile GRPCChannel managedChannel = null;//Agent与OAP之间的网络链接
+    private volatile ScheduledFuture<?> connectCheckFuture;//网络链接状态定时检查任务调度器
+    private volatile boolean reconnect = true; // 当前网络状态是否需要重链
     private final Random random = new Random();
     private final List<GRPCChannelListener> listeners = Collections.synchronizedList(new LinkedList<>());
-    private volatile List<String> grpcServers;
-    private volatile int selectedIdx = -1;
+    private volatile List<String> grpcServers;//OAP地址列表
+    private volatile int selectedIdx = -1; //上一次选择的OAP地址的下标
     private volatile int reconnectCount = 0;
 
     @Override
@@ -68,6 +71,7 @@ public class GRPCChannelManager implements BootService, Runnable {
      */
     @Override
     public void boot() {
+        // 是否有配置OAP地址
         if (Config.Collector.BACKEND_SERVICE.trim().length() == 0) {
             LOGGER.error("Collector server addresses are not set.");
             LOGGER.error("Agent will not uplink any data.");
@@ -81,7 +85,7 @@ public class GRPCChannelManager implements BootService, Runnable {
              new DefaultNamedThreadFactory("GRPCChannelManager")
         ).scheduleAtFixedRate(
             new RunnableWithExceptionProtection(
-                this,
+                this,//传的this，还是执行执行的run方法
                 // 线程异常时的回调
                 t -> LOGGER.error("unexpected exception.", t)
             ), 0, Config.Collector.GRPC_CHANNEL_CHECK_INTERVAL, TimeUnit.SECONDS
@@ -107,6 +111,7 @@ public class GRPCChannelManager implements BootService, Runnable {
     @Override
     public void run() {
         LOGGER.debug("Selected collector grpc service running, reconnect:{}.", reconnect);
+        //是否周期性的解析dns && 当前网络链接是否需要重新链接
         if (IS_RESOLVE_DNS_PERIODICALLY && reconnect) {
             grpcServers = Arrays.stream(Config.Collector.BACKEND_SERVICE.split(","))
                     .filter(StringUtil::isNotBlank)
@@ -120,7 +125,9 @@ public class GRPCChannelManager implements BootService, Runnable {
                     })
                     .flatMap(domainPortPairs -> {
                         try {
-                            return Arrays.stream(InetAddress.getAllByName(domainPortPairs[0]))
+                            return Arrays
+                                    // 找到domain(域名) 对应的所有ip：端口
+                                    .stream(InetAddress.getAllByName(domainPortPairs[0]))//通过域名找ip地址
                                     .map(InetAddress::getHostAddress)
                                     .map(ip -> String.format("%s:%s", ip, domainPortPairs[1]));
                         } catch (Throwable t) {
@@ -132,21 +139,22 @@ public class GRPCChannelManager implements BootService, Runnable {
                     .collect(Collectors.toList());
         }
 
-        if (reconnect) {
-            if (grpcServers.size() > 0) {
+        if (reconnect) {//需要重新链接
+            if (grpcServers.size() > 0) {//且后端地址有值
                 String server = "";
                 try {
-                    int index = Math.abs(random.nextInt()) % grpcServers.size();
-                    if (index != selectedIdx) {
+                    int index = Math.abs(random.nextInt()) % grpcServers.size();// 随机选择一个地址
+                    if (index != selectedIdx) {// 这次选择的地址不等于上一次选择的地址
                         selectedIdx = index;
 
                         server = grpcServers.get(index);
                         String[] ipAndPort = server.split(":");
 
                         if (managedChannel != null) {
-                            managedChannel.shutdownNow();
+                            managedChannel.shutdownNow();//出问题的链接shutDown
                         }
 
+                        // 新建链接
                         managedChannel = GRPCChannel.newBuilder(ipAndPort[0], Integer.parseInt(ipAndPort[1]))
                                                     .addManagedChannelBuilder(new StandardChannelBuilder())
                                                     .addManagedChannelBuilder(new TLSChannelBuilder())
@@ -155,7 +163,7 @@ public class GRPCChannelManager implements BootService, Runnable {
                                                     .build();
                         reconnectCount = 0;
                         reconnect = false;
-                        notify(GRPCChannelStatus.CONNECTED);
+                        notify(GRPCChannelStatus.CONNECTED);//通知所有使用这个网络链接的BootService
                     } else if (managedChannel.isConnected(++reconnectCount > Config.Agent.FORCE_RECONNECTION_PERIOD)) {
                         // Reconnect to the same server is automatically done by GRPC,
                         // therefore we are responsible to check the connectivity and

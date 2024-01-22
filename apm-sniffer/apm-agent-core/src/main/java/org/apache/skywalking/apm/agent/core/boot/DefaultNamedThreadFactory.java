@@ -22,8 +22,8 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class DefaultNamedThreadFactory implements ThreadFactory {
-    private static final AtomicInteger BOOT_SERVICE_SEQ = new AtomicInteger(0);
-    private final AtomicInteger threadSeq = new AtomicInteger(0);
+    private static final AtomicInteger BOOT_SERVICE_SEQ = new AtomicInteger(0);  //第几个线程工厂的序列
+    private final AtomicInteger threadSeq = new AtomicInteger(0);  // 该线程工厂下，创建的第几个线程的序列
     private final String namePrefix;
 
     public DefaultNamedThreadFactory(String name) {

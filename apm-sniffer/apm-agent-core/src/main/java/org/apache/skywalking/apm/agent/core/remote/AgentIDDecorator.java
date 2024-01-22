@@ -30,6 +30,8 @@ import org.apache.skywalking.apm.agent.core.conf.Config;
 
 /**
  * Add agent version(Described in MANIFEST.MF) to the connection establish stage.
+ *
+ * 在GRPC请求的请求头中添加agent版本，OAP接收到消息的时候，会查看该版本，查看是否与当前OAP一致，类似一个版本兼容的控制
  */
 public class AgentIDDecorator implements ChannelDecorator {
     private static final Metadata.Key<String> AGENT_VERSION_HEAD_HEADER_NAME = Metadata.Key.of("Agent-Version", Metadata.ASCII_STRING_MARSHALLER);

@@ -31,12 +31,14 @@ import java.util.List;
 public class GRPCChannel {
     /**
      * origin channel
+     * 虽然这里变量上是定义的两个channel，但是这是同一个链接，只是为了编码层面做不同的装饰器处理，所以定义了两个变量
      */
     private final ManagedChannel originChannel;
     private final Channel channelWithDecorators;
 
     private GRPCChannel(String host, int port, List<ChannelBuilder> channelBuilders,
                         List<ChannelDecorator> decorators) throws Exception {
+
         ManagedChannelBuilder channelBuilder = NettyChannelBuilder.forAddress(host, port);
 
         NameResolverRegistry.getDefaultRegistry().register(new DnsNameResolverProvider());
