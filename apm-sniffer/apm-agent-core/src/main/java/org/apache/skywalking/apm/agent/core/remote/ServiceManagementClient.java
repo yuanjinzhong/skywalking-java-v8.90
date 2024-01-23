@@ -48,7 +48,8 @@ import static org.apache.skywalking.apm.agent.core.conf.Config.Collector.GRPC_UP
 /**
  *  自报家门
  *
- *  1:将当前 Agent client 的基本信息汇报给OAP
+ *  1:将当前 Agent client 的基本信息os，jvm 信息 汇报给OAP
+ *      agent挂载到一个项目（服务）上，那这个项目（服务）就是agent client
  *  2: 和OAP 保持心跳
  *
  */
@@ -56,17 +57,18 @@ import static org.apache.skywalking.apm.agent.core.conf.Config.Collector.GRPC_UP
 @DefaultImplementor
 public class ServiceManagementClient implements BootService, Runnable, GRPCChannelListener {
     private static final ILog LOGGER = LogManager.getLogger(ServiceManagementClient.class);
-    private static List<KeyStringValuePair> SERVICE_INSTANCE_PROPERTIES;
+    private static List<KeyStringValuePair> SERVICE_INSTANCE_PROPERTIES;// 保存着agent client的信息
 
-    private volatile GRPCChannelStatus status = GRPCChannelStatus.DISCONNECT;
-    private volatile ManagementServiceGrpc.ManagementServiceBlockingStub managementServiceBlockingStub;
+    private volatile GRPCChannelStatus status = GRPCChannelStatus.DISCONNECT;// 当前网络状态
+    private volatile ManagementServiceGrpc.ManagementServiceBlockingStub managementServiceBlockingStub; //网络服务，远程调用
     private volatile ScheduledFuture<?> heartbeatFuture;
-    private volatile AtomicInteger sendPropertiesCounter = new AtomicInteger(0);
+    private volatile AtomicInteger sendPropertiesCounter = new AtomicInteger(0); //Agent Client 信息次数发送计数器
 
     @Override
     public void statusChanged(GRPCChannelStatus status) {
         if (GRPCChannelStatus.CONNECTED.equals(status)) {
             Channel channel = ServiceManager.INSTANCE.findService(GRPCChannelManager.class).getChannel();
+            // grpc 中的stub 就等价于 dubbo中的interface定义， 这里指的是在protobuf中定义的XxxService（apm-protocol/apm-network/src/main/proto/management/Management.proto:32）
             managementServiceBlockingStub = ManagementServiceGrpc.newBlockingStub(channel);
         } else {
             managementServiceBlockingStub = null;
@@ -83,6 +85,7 @@ public class ServiceManagementClient implements BootService, Runnable, GRPCChann
 
     @Override
     public void boot() {
+        //心跳定时任务
         heartbeatFuture = Executors.newSingleThreadScheduledExecutor(
             new DefaultNamedThreadFactory("ServiceManagementClient")
         ).scheduleAtFixedRate(
@@ -110,6 +113,13 @@ public class ServiceManagementClient implements BootService, Runnable, GRPCChann
         if (GRPCChannelStatus.CONNECTED.equals(status)) {
             try {
                 if (managementServiceBlockingStub != null) {
+                    // Math.abs(sendPropertiesCounter.getAndAdd(1)) 这个取绝对值的原因：
+                    // 一个agent client 发送消息的次数可能会非常多，当超出integer的最大值的时候，会变成负数， 所有取绝对值
+                    //% 取余的原因：
+                    // 定时任务30秒调度一次，调度一次，sendPropertiesCounter.getAndAdd(1))的值 加1
+                    // 只有第0次调度，第10次调度，第20次调度。。。。 该表达式才等于true
+                    // 也就是0*30秒 ， 10*30秒， 第20*30秒 会发送一次数据到OAP, 也就是5分钟发送一次数据
+                    // todo 不过为啥不干脆5分钟调度一次呢？
                     if (Math.abs(
                         sendPropertiesCounter.getAndAdd(1)) % Config.Collector.PROPERTIES_REPORT_PERIOD_FACTOR == 0) {
 
@@ -125,6 +135,7 @@ public class ServiceManagementClient implements BootService, Runnable, GRPCChann
                                                                             LoadedLibraryCollector.buildJVMInfo())
                                                                         .build());
                     } else {
+                        // 不在上报周期内，则发送心跳包
                         final Commands commands = managementServiceBlockingStub.withDeadlineAfter(
                             GRPC_UPSTREAM_TIMEOUT, TimeUnit.SECONDS
                         ).keepAlive(InstancePingPkg.newBuilder()

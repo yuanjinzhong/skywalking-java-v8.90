@@ -63,8 +63,10 @@ public class CommandService implements BootService, Runnable {
 
         while (isRunning) {
             try {
+                // 接收到的服务器端的命令，交给CommandExecutorService来处理
                 BaseCommand command = commands.take();
 
+                // 同一个任务不要重复执行（被commandExecutorService重复执行）
                 if (isCommandExecuted(command)) {
                     continue;
                 }

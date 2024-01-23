@@ -36,6 +36,7 @@ public class InstanceJsonPropertiesUtil {
 
         if (StringUtil.isNotEmpty(Config.Agent.INSTANCE_PROPERTIES_JSON)) {
             Map<String, String> json = GSON.fromJson(
+                // 将配置文件里面的Agent client 信息放入，等待发送
                 Config.Agent.INSTANCE_PROPERTIES_JSON,
                 new TypeToken<Map<String, String>>() {
                 }.getType()
