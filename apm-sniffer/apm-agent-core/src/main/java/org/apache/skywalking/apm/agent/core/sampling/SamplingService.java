@@ -35,10 +35,17 @@ import org.apache.skywalking.apm.agent.core.logging.api.ILog;
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager;
 import org.apache.skywalking.apm.util.RunnableWithExceptionProtection;
 
-/** 采样服务
+/**
+ * 这些BootService 应该都是单例,需要看一下怎么保证单例的
+ *
+ * 采样服务
+ * <p>控制如何去采样 TraceSegment
  * The <code>SamplingService</code> take charge of how to sample the {@link TraceSegment}. Every {@link TraceSegment}s
  * have been traced, but, considering CPU cost of serialization/deserialization, and network bandwidth, the agent do NOT
  * send all of them to collector, if SAMPLING is on.
+ *
+ * 每个TraceSegment 都会被采集(追踪到的),但是考虑到序列化与反序列化时的服务器损耗,还有网络带宽的损耗, agent不会将所有的TraceSegment都发送给OPA服务
+ *
  * <p>
  * By default, SAMPLING is on, and  {@link Config.Agent#SAMPLE_N_PER_3_SECS }
  */
@@ -47,8 +54,8 @@ public class SamplingService implements BootService {
     private static final ILog LOGGER = LogManager.getLogger(SamplingService.class);
 
     private volatile boolean on = false;
-    private volatile AtomicInteger samplingFactorHolder;
-    private volatile ScheduledFuture<?> scheduledFuture;
+    private volatile AtomicInteger samplingFactorHolder;//累加三秒类已经采样的次数
+    private volatile ScheduledFuture<?> scheduledFuture; // 每3秒重置一次  samplingFactorHolder
 
     private SamplingRateWatcher samplingRateWatcher;
     private ScheduledExecutorService service;
@@ -62,6 +69,9 @@ public class SamplingService implements BootService {
         service = Executors.newSingleThreadScheduledExecutor(
                 new DefaultNamedThreadFactory("SamplingService"));
         samplingRateWatcher = new SamplingRateWatcher("agent.sample_n_per_3_secs", this);
+        /**
+         * 注册采样率配置监听器, 具体配置监听的实现在{@link ConfigurationDiscoveryService}
+         */
         ServiceManager.INSTANCE.findService(ConfigurationDiscoveryService.class)
                                .registerAgentConfigChangeWatcher(samplingRateWatcher);
 
@@ -80,7 +90,7 @@ public class SamplingService implements BootService {
         }
     }
 
-    /**
+    /**    如果采样机制没开启,则每个采样都会发送给后端OAP服务,如果采样机制开启了,则会触发3秒内最大上报采样量的限制, 这也是奇葩....
      * When the sampling mechanism is on and the sample limited is not reached, the trace segment
      * should be traced. If the sampling mechanism is off, it means that all trace segments should
      * be traced.
@@ -90,12 +100,14 @@ public class SamplingService implements BootService {
     public boolean trySampling(String operationName) {
         if (on) {
             int factor = samplingFactorHolder.get();
+            //当前采样数 小于 配置的 3秒内最大上报采样数
             if (factor < samplingRateWatcher.getSamplingRate()) {
                 return samplingFactorHolder.compareAndSet(factor, factor + 1);
             } else {
                 return false;
             }
         }
+        // 如果采样机制没开启,则每个采样都会发送给后端OAP服务
         return true;
     }
 

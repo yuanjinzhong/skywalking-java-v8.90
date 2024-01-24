@@ -39,14 +39,15 @@ import org.apache.skywalking.apm.network.language.agent.v3.JVMMetric;
 import org.apache.skywalking.apm.util.RunnableWithExceptionProtection;
 
 /**
+ * 定时上报jvm信息到OAP
  * The <code>JVMService</code> represents a timer, which collectors JVM cpu, memory, memorypool, gc, thread and class info,
- * and send the collected info to Collector through the channel provided by {@link GRPCChannelManager}
+ * and send the collected info to OAP through the channel provided by {@link GRPCChannelManager}
  */
 @DefaultImplementor
 public class JVMService implements BootService, Runnable {
     private static final ILog LOGGER = LogManager.getLogger(JVMService.class);
-    private volatile ScheduledFuture<?> collectMetricFuture;
-    private volatile ScheduledFuture<?> sendMetricFuture;
+    private volatile ScheduledFuture<?> collectMetricFuture;//收集jvm信息的定时任务
+    private volatile ScheduledFuture<?> sendMetricFuture; // 发送jvm信息的定时任务
     private JVMMetricsSender sender;
     private volatile double cpuUsagePercent;
 

@@ -25,12 +25,20 @@ import org.apache.skywalking.apm.agent.core.logging.api.ILog;
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager;
 import org.apache.skywalking.apm.agent.core.sampling.SamplingService;
 
+/**
+ * 监听采样配置值的变化
+ */
 public class SamplingRateWatcher extends AgentConfigChangeWatcher {
     private static final ILog LOGGER = LogManager.getLogger(SamplingRateWatcher.class);
 
     private final AtomicInteger samplingRate;
     private final SamplingService samplingService;
 
+    /**
+     *
+     * @param propertyKey 配置项, 上层调用的时候传的是:agent.sample_n_per_3_secs
+     * @param samplingService 配置项对应的服务
+     */
     public SamplingRateWatcher(final String propertyKey, SamplingService samplingService) {
         super(propertyKey);
         this.samplingRate = new AtomicInteger(getDefaultValue());
