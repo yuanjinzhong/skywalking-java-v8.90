@@ -81,6 +81,7 @@ public class Config {
         public static String AUTHENTICATION = "";
 
         /**
+         * 每3秒,可以采样的数据的条数, -1 表示不采样,  比如 10 表示每3秒最多采样10条
          * Negative or zero means off, by default. {@code #SAMPLE_N_PER_3_SECS} means sampling N {@link TraceSegment} in
          * 3 seconds tops.
          */
