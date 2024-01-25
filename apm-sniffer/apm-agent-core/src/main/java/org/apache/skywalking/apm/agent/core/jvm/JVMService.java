@@ -48,7 +48,7 @@ public class JVMService implements BootService, Runnable {
     private static final ILog LOGGER = LogManager.getLogger(JVMService.class);
     private volatile ScheduledFuture<?> collectMetricFuture;//收集jvm信息的定时任务
     private volatile ScheduledFuture<?> sendMetricFuture; // 发送jvm信息的定时任务
-    private JVMMetricsSender sender;
+    private JVMMetricsSender sender; // jvm 信息发送者
     private volatile double cpuUsagePercent;
 
     @Override

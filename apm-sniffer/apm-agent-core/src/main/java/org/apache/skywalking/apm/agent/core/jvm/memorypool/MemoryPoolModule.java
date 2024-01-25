@@ -25,6 +25,9 @@ import java.util.List;
 import org.apache.skywalking.apm.network.language.agent.v3.MemoryPool;
 import org.apache.skywalking.apm.network.language.agent.v3.PoolType;
 
+/**
+ *对于不同的 垃圾回收器,他们对于不同的内存区域,命名是不同的
+ */
 public abstract class MemoryPoolModule implements MemoryPoolMetricsAccessor {
     private List<MemoryPoolMXBean> beans;
 
