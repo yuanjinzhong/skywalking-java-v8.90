@@ -36,7 +36,7 @@ import org.apache.skywalking.apm.agent.core.logging.api.LogManager;
 import org.apache.skywalking.apm.util.RunnableWithExceptionProtection;
 
 /** 采样服务
- * The <code>SamplingService</code> take charge of how to sample the {@link TraceSegment}. Every {@link TraceSegment}s
+ * <p>The <code>SamplingService</code> take charge of how to sample the {@link TraceSegment}. Every {@link TraceSegment}s
  * have been traced, but, considering CPU cost of serialization/deserialization, and network bandwidth, the agent do NOT
  * send all of them to collector, if SAMPLING is on.
  * <p>
